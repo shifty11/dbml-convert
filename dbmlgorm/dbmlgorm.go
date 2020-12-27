@@ -10,18 +10,22 @@ import (
 )
 
 func dbmlToGormString(dbml *core.DBML) string {
-	str := "// Auto-generated code\n\npackage model\n\n"
+	str, types := getProjectConfig(dbml)
 	for _, table := range dbml.Tables {
-		str += dbmlTableToGormString(table)
+		str += dbmlTableToGormString(table, types)
 	}
 	return str
 }
 
-func dbmlTableToGormString(table core.Table) string {
+func dbmlTableToGormString(table core.Table, types map[string]string) string {
 	str := ""
 	str += fmt.Sprintf("type %v struct {\n", table.Name)
 	for _, column := range table.Columns {
-		str += fmt.Sprintf("    %v %v", column.Name, column.Type)
+		columnType, isPresent := types[column.Type]
+		if !isPresent {
+			columnType = column.Type
+		}
+		str += fmt.Sprintf("    %v %v", column.Name, columnType)
 		if column.Settings.Note != "" {
 			str += fmt.Sprintf(" `%v`", column.Settings.Note)
 		}
@@ -32,13 +36,13 @@ func dbmlTableToGormString(table core.Table) string {
 }
 
 func WriteToGormFile(gormString string, outputPath string) {
-	file, err1 := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	if err1 != nil {
-		log.Fatal(err1)
+	file, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		log.Fatal(err)
 	}
-	_, err2 := file.WriteString(gormString)
-	if err2 != nil {
-		log.Fatal(err2)
+	_, err = file.WriteString(gormString)
+	if err != nil {
+		log.Fatal(err)
 	}
 	if err := file.Close(); err != nil {
 		log.Fatal(err)
