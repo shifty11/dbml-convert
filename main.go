@@ -36,5 +36,5 @@ func main() {
 	parsed := dbmlgorm.ParseDbml(dbmlPath)
 	dbmlgorm.WriteToGormFile(parsed, outputPath)
 
-	fmt.Printf("Created models from %v at %v", dbmlPath, outputPath)
+	fmt.Printf("Created models from %v at %v\n", dbmlPath, outputPath)
 }
