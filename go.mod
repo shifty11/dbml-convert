@@ -1,4 +1,4 @@
-module github.com/Shifty11/dbml-to-gorm
+module github.com/shifty111/dbml-to-gorm
 
 go 1.15
 
