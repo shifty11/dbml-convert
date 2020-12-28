@@ -33,8 +33,7 @@ func parseArgs() (string, string) {
 func main() {
 	dbmlPath, outputPath := parseArgs()
 
-	parsed := dbmlgorm.ParseDbml(dbmlPath)
-	dbmlgorm.WriteToGormFile(parsed, outputPath)
+	dbmlgorm.CreateGormFiles(dbmlPath, outputPath)
 
 	fmt.Printf("Created models from %v at %v\n", dbmlPath, outputPath)
 }

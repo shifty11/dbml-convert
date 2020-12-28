@@ -7,6 +7,7 @@ import (
 	"github.com/duythinht/dbml-go/scanner"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func dbmlToGormString(dbml *core.DBML) string {
@@ -35,7 +36,7 @@ func dbmlTableToGormString(table core.Table, types map[string]string) string {
 	return str
 }
 
-func WriteToGormFile(gormString string, outputPath string) {
+func writeToGormFile(gormString string, outputPath string) {
 	file, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		log.Fatal(err)
@@ -49,7 +50,45 @@ func WriteToGormFile(gormString string, outputPath string) {
 	}
 }
 
-func ParseDbml(dbmlPath string) string {
+var migrationTemplate = `import (
+	"fmt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+var db *gorm.DB
+
+func Connect(dsn string) *gorm.DB {
+	if db == nil {
+		newDb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err != nil {
+			panic("failed to connect database")
+		}
+		db = newDb
+	}
+	return db
+}
+
+func Migrate(dsn string) {
+	db := Connect(dsn)
+`
+
+func dbmlToMigrationString(dbml *core.DBML) string {
+	migrationStr := getProjectHeader(dbml)
+	migrationStr += migrationTemplate
+	for _, table := range dbml.Tables {
+		migrationStr += fmt.Sprintf(`
+	if err := db.AutoMigrate(&%v{}); err != nil {
+		panic("failed to migrate %v")
+	}`, table.Name, table.Name)
+	}
+	migrationStr += `
+	fmt.Println("Migration succeeded")
+}`
+	return migrationStr
+}
+
+func CreateGormFiles(dbmlPath string, outputPath string) {
 	file, err := os.Open(dbmlPath)
 	if err != nil {
 		log.Fatal(err)
@@ -62,5 +101,9 @@ func ParseDbml(dbmlPath string) string {
 		log.Fatal(err)
 	}
 
-	return dbmlToGormString(dbml)
+	gormString := dbmlToGormString(dbml)
+	writeToGormFile(gormString, filepath.Join(outputPath, "model.gen.go"))
+
+	migrationString := dbmlToMigrationString(dbml)
+	writeToGormFile(migrationString, filepath.Join(outputPath, "migration.gen.go"))
 }
