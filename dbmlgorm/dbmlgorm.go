@@ -29,6 +29,9 @@ func dbmlEnumToGormString(enum core.Enum) string {
 		if i == 0 {
 			str += fmt.Sprintf(" = iota")
 		}
+		if column.Note != "" {
+			str += fmt.Sprintf("\t// %v", column.Note)
+		}
 		str += "\n"
 	}
 	str += ")\n\n"
