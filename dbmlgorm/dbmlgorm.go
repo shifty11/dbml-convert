@@ -12,9 +12,26 @@ import (
 
 func dbmlToGormString(dbml *core.DBML) string {
 	str, types := getProjectConfig(dbml)
+	for _, enum := range dbml.Enums {
+		str += dbmlEnumToGormString(enum)
+	}
 	for _, table := range dbml.Tables {
 		str += dbmlTableToGormString(table, types)
 	}
+	return str
+}
+
+func dbmlEnumToGormString(enum core.Enum) string {
+	str := ""
+	str += fmt.Sprintf("type %v uint\n\nconst (\n", enum.Name)
+	for i, column := range enum.Values {
+		str += fmt.Sprintf("    %v", column.Name)
+		if i == 0 {
+			str += fmt.Sprintf(" = iota")
+		}
+		str += "\n"
+	}
+	str += ")\n\n"
 	return str
 }
 
