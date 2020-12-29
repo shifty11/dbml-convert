@@ -1,4 +1,4 @@
-module github.com/shifty111/dbml-to-gorm
+module github.com/shifty11/dbml-to-gorm
 
 go 1.15
 
@@ -7,4 +7,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace github.com/duythinht/dbml-go => github.com/shifty111/dbml-go v0.1.0
+replace github.com/duythinht/dbml-go => github.com/shifty11/dbml-go v0.1.0

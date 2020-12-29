@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/shifty111/dbml-to-gorm/dbmlgorm"
+	"github.com/shifty11/dbml-to-gorm/dbmlgorm"
 	"os"
 )
 
