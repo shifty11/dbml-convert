@@ -5,9 +5,11 @@ import (
 	"github.com/duythinht/dbml-go/core"
 	"github.com/duythinht/dbml-go/parser"
 	"github.com/duythinht/dbml-go/scanner"
-	"log"
+	"github.com/stretchr/stew/slice"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 func dbmlToGormString(dbml *core.DBML) string {
@@ -41,32 +43,74 @@ func dbmlEnumToGormString(enum core.Enum) string {
 func dbmlTableToGormString(table core.Table, types map[string]string) string {
 	str := ""
 	str += fmt.Sprintf("type %v struct {\n", table.Name)
+	if table.Note != "" {
+		str += "\t" + strings.Replace(table.Note, ";", "\n", -1) + "\n"
+	}
 	for _, column := range table.Columns {
-		columnType, isPresent := types[column.Type]
-		if !isPresent {
-			columnType = column.Type
+		if column.Settings.Note != "hidden" {
+			columnType, isPresent := types[column.Type]
+			if !isPresent {
+				columnType = column.Type
+			}
+			settings := createGormSettings(column)
+			str += fmt.Sprintf("    %v %v%v\n", column.Name, columnType, settings)
 		}
-		str += fmt.Sprintf("    %v %v", column.Name, columnType)
-		if column.Settings.Note != "" {
-			str += fmt.Sprintf(" `%v`", column.Settings.Note)
-		}
-		str += "\n"
 	}
 	str += "}\n\n"
 	return str
 }
 
-func writeToGormFile(gormString string, outputPath string) {
+func createGormSettings(column core.Column) string {
+	re := regexp.MustCompile(`^gorm:\"([a-zA-Z-_;:<> ]*)\"$`)
+	var settings []string
+
+	match := re.FindStringSubmatch(column.Settings.Note)
+	if len(match) == 2 {
+		for _, entry := range strings.Split(match[1], ";") {
+			settings = append(settings, strings.ToLower(entry))
+		}
+	}
+
+	primarykey := "primarykey"
+	if column.Settings.PK && !slice.Contains(settings, primarykey) {
+		settings = append(settings, primarykey)
+	}
+	key := "autoincrement"
+	if column.Settings.Increment && !slice.Contains(settings, key) && !slice.Contains(settings, primarykey) {
+		settings = append(settings, key) // Add auto-increment just if not primarykey
+	}
+	key = "unique"
+	if column.Settings.Unique && !slice.Contains(settings, key) && !slice.Contains(settings, primarykey) {
+		settings = append(settings, key)
+	}
+	key = "not null"
+	if !column.Settings.Null && !slice.Contains(settings, key) && !slice.Contains(settings, primarykey) {
+		settings = append(settings, key)
+	}
+	key = "default"
+	if column.Settings.Default != "" && !slice.Contains(settings, key) {
+		reDefault := regexp.MustCompile(`^gorm:\"[^\"]*?default:[^\"]*?\"$`)
+		if len(reDefault.FindString(column.Settings.Note)) == 0 {
+			settings = append(settings, "default:"+column.Settings.Default)
+		}
+	}
+	if len(settings) > 0 {
+		return fmt.Sprintf(" `gorm:\"%v\"`", strings.Join(settings, ";"))
+	}
+	return ""
+}
+
+func writeToFile(gormString string, outputPath string) {
 	file, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	_, err = file.WriteString(gormString)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	if err := file.Close(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }
 
@@ -111,19 +155,19 @@ func dbmlToMigrationString(dbml *core.DBML) string {
 func CreateGormFiles(dbmlPath string, outputPath string) {
 	file, err := os.Open(dbmlPath)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	scan := scanner.NewScanner(file)
 	pars := parser.NewParser(scan)
 	dbml, err := pars.Parse()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	gormString := dbmlToGormString(dbml)
-	writeToGormFile(gormString, filepath.Join(outputPath, "model.gen.go"))
+	writeToFile(gormString, filepath.Join(outputPath, "model.gen.go"))
 
 	migrationString := dbmlToMigrationString(dbml)
-	writeToGormFile(migrationString, filepath.Join(outputPath, "migration.gen.go"))
+	writeToFile(migrationString, filepath.Join(outputPath, "migration.gen.go"))
 }
