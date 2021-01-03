@@ -3,10 +3,8 @@ package dbmlgorm
 import (
 	"fmt"
 	"github.com/duythinht/dbml-go/core"
-	"github.com/duythinht/dbml-go/parser"
-	"github.com/duythinht/dbml-go/scanner"
+	"github.com/shifty11/dbml-to-gorm/common"
 	"github.com/stretchr/stew/slice"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -100,20 +98,6 @@ func createGormSettings(column core.Column) string {
 	return ""
 }
 
-func writeToFile(gormString string, outputPath string) {
-	file, err := os.OpenFile(outputPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	if err != nil {
-		panic(err)
-	}
-	_, err = file.WriteString(gormString)
-	if err != nil {
-		panic(err)
-	}
-	if err := file.Close(); err != nil {
-		panic(err)
-	}
-}
-
 var migrationTemplate = `import (
 	"fmt"
 	"gorm.io/driver/postgres"
@@ -152,22 +136,10 @@ func dbmlToMigrationString(dbml *core.DBML) string {
 	return migrationStr
 }
 
-func CreateGormFiles(dbmlPath string, outputPath string) {
-	file, err := os.Open(dbmlPath)
-	if err != nil {
-		panic(err)
-	}
-
-	scan := scanner.NewScanner(file)
-	pars := parser.NewParser(scan)
-	dbml, err := pars.Parse()
-	if err != nil {
-		panic(err)
-	}
-
+func CreateGormFiles(dbml *core.DBML, outputPath string) {
 	gormString := dbmlToGormString(dbml)
-	writeToFile(gormString, filepath.Join(outputPath, "model.gen.go"))
+	common.WriteToFile(gormString, filepath.Join(outputPath, "model.gen.go"))
 
 	migrationString := dbmlToMigrationString(dbml)
-	writeToFile(migrationString, filepath.Join(outputPath, "migration.gen.go"))
+	common.WriteToFile(migrationString, filepath.Join(outputPath, "migration.gen.go"))
 }
