@@ -12,11 +12,9 @@ import (
 )
 
 func parseArgs() (string, string, bool) {
-	// Showing useful information when the user enters the --help option
-	flag.Usage = func() {
-		fmt.Printf("Usage: %s <path-to-dbml-file> <path-to-output>\n",
-			os.Args[0])
+	flag.Usage = func() { // Showing useful information when the user enters the --help option
 		flag.PrintDefaults()
+		fmt.Printf("<path-to-dbml-file> <path-to-output>\n")
 	}
 	toDjango := flag.Bool("django", false, "Creates Django models")
 	toGorm := flag.Bool("gorm", false, "Creates Gorm models")
@@ -59,9 +57,9 @@ func main() {
 
 	if toDjango {
 		dbmldjango.CreateDjangoFiles(dbml, outputPath)
-		fmt.Printf("Created Django models from %v at %v\n", dbmlPath, outputPath)
+		fmt.Printf("Created Django models\nInput: %v\nOutput:%v\n", dbmlPath, outputPath)
 	} else {
 		dbmlgorm.CreateGormFiles(dbml, outputPath)
-		fmt.Printf("Created Gorm models from %v at %v\n", dbmlPath, outputPath)
+		fmt.Printf("Created Gorm models\nInput: %v\nOutput:%v\n", dbmlPath, outputPath)
 	}
 }
