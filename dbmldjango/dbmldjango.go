@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var djangoRe = regexp.MustCompile(`django:\"([a-zA-Z0-9-_;:<>= \.\/\']*)\"`)
+var djangoRe = regexp.MustCompile(`django:"([a-zA-Z0-9-_;:<>= ./']*)"`)
 
 func getTemplate(path string) string {
 	template, err := ioutil.ReadFile(path)
