@@ -9,4 +9,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-replace github.com/duythinht/dbml-go => github.com/shifty11/dbml-go v0.1.1
+replace github.com/duythinht/dbml-go => github.com/shifty11/dbml-go v0.1.2

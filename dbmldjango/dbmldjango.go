@@ -12,10 +12,13 @@ import (
 	"strings"
 )
 
+var djangoRe = regexp.MustCompile(`django:\"([a-zA-Z0-9-_;:<>= \.\/\']*)\"`)
+
 func getTemplate(path string) string {
 	template, err := ioutil.ReadFile(path)
 	if err != nil {
-		return "import enum\n\nfrom django.db import models\n\n\n"
+		return "# Auto generated models. Do not edit by hand!\n# Instead add the file 'models.py.template' " +
+			"which will be added to the top of 'models.py'\nimport enum\n\nfrom django.db import models\n\n\n"
 	}
 	return string(template)
 }
@@ -53,9 +56,8 @@ type TableSettings struct {
 
 func parseTableSettings(table core.Table) TableSettings {
 	settings := TableSettings{Hidden: false}
-	re := regexp.MustCompile(`django:\"([a-zA-Z0-9-_;:<>= \.\/]*)\"`)
 
-	match := re.FindStringSubmatch(table.Note)
+	match := djangoRe.FindStringSubmatch(table.Note)
 	if len(match) == 2 {
 		for _, entry := range strings.Split(match[1], ";") {
 			if entry == "hidden" {
@@ -77,10 +79,9 @@ func parseTableSettings(table core.Table) TableSettings {
 }
 
 func parseColumnParameters(column core.Column) []string {
-	re := regexp.MustCompile(`django:\"([a-zA-Z0-9-_;:<>=, \.\/]*)\"`)
 	params := getDbmlColumnSettings(column)
 
-	match := re.FindStringSubmatch(column.Settings.Note)
+	match := djangoRe.FindStringSubmatch(column.Settings.Note)
 	if len(match) == 2 {
 		for _, entry := range strings.Split(match[1], ";") {
 			params = append(params, entry)
@@ -114,11 +115,8 @@ func getRelationType(column core.Column, paramsString string) string {
 	}
 	if column.Settings.Ref.Type == core.OneToOne {
 		columnType = "models.OneToOneField"
-		//paramsString = fmt.Sprintf("\"%v\"%v", column.Type, paramsString)
 	} else if column.Settings.Ref.Type == core.ManyToOne || column.Settings.Ref.Type == core.OneToMany {
 		columnType = "models.ForeignKey"
-		//paramsString = fmt.Sprintf("\"%v\"%v",
-		//	strings.Replace(column.Type, "[]", "", 1), paramsString)
 	} else {
 		fmt.Printf("%v was not found in type definition\n", column.Type)
 		return ""
@@ -210,7 +208,7 @@ func addEnums(currentEnums []core.Enum, enums []core.Enum, table core.Table) []c
 	return currentEnums
 }
 
-func dbmlSplitByModelPath(dbml *core.DBML, djangoRoot string) DBMLDjango {
+func dbmlSplitByModelPath(dbml *core.DBML) DBMLDjango {
 	files := map[string]PythonFile{}
 	for _, table := range dbml.Tables {
 		settings := parseTableSettings(table)
@@ -236,7 +234,7 @@ func dbmlSplitByModelPath(dbml *core.DBML, djangoRoot string) DBMLDjango {
 }
 
 func CreateDjangoFiles(dbml *core.DBML, djangoRoot string) {
-	dbmlDjango := dbmlSplitByModelPath(dbml, djangoRoot)
+	dbmlDjango := dbmlSplitByModelPath(dbml)
 
 	for _, file := range dbmlDjango.Files {
 		djangoString := dbmlToDjangoString(file, djangoRoot)
