@@ -23,13 +23,13 @@ func getTemplate(path string) string {
 	return string(template)
 }
 
-func dbmlToDjangoString(dbml PythonFile, djangoPath string) string {
-	str := getTemplate(djangoPath + "models.py.template")
-	for _, enum := range dbml.Enums {
+func dbmlToDjangoString(pythonFile PythonFile, djangoPath string) string {
+	str := getTemplate(filepath.Join(djangoPath, pythonFile.FilePath+".template"))
+	for _, enum := range pythonFile.Enums {
 		str += dbmlEnumToDjangoString(enum)
 	}
-	for _, table := range dbml.Tables {
-		str += dbmlTableToDjangoString(table, dbml.Enums)
+	for _, table := range pythonFile.Tables {
+		str += dbmlTableToDjangoString(table, pythonFile.Enums)
 	}
 	return str
 }
