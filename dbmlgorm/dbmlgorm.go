@@ -5,18 +5,30 @@ import (
 	"github.com/duythinht/dbml-go/core"
 	"github.com/shifty11/dbml-to-gorm/common"
 	"github.com/stretchr/stew/slice"
+	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strings"
 )
 
-func dbmlToGormString(dbml *core.DBML) string {
-	str, types := getProjectConfig(dbml)
+var gormRe = regexp.MustCompile(`gorm:"([a-zA-Z0-9-_;:<>= ./']*)"`)
+
+func getTemplate(path string) string {
+	template, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "// Auto generated models. Do not edit by hand!\n// Instead add the file 'model.go.template' " +
+			"which will be added to the top of 'model.go'\nimport enum\n\nfrom django.db import models\n\n\n"
+	}
+	return string(template)
+}
+
+func dbmlToGormString(dbml *core.DBML, outputPath string) string {
+	str := getTemplate(filepath.Join(outputPath, "model.go.template"))
 	for _, enum := range dbml.Enums {
 		str += dbmlEnumToGormString(enum)
 	}
 	for _, table := range dbml.Tables {
-		str += dbmlTableToGormString(table, types)
+		str += dbmlTableToGormString(table)
 	}
 	return str
 }
@@ -38,31 +50,69 @@ func dbmlEnumToGormString(enum core.Enum) string {
 	return str
 }
 
-func dbmlTableToGormString(table core.Table, types map[string]string) string {
+type TableSettings struct {
+	Inheritances []string
+	Hidden       bool
+}
+
+func parseTableSettings(table core.Table) TableSettings {
+	settings := TableSettings{Hidden: false}
+
+	match := gormRe.FindStringSubmatch(table.Note)
+	if len(match) == 2 {
+		for _, entry := range strings.Split(match[1], ";") {
+			if entry == "hidden" {
+				return TableSettings{Hidden: true}
+			} else if strings.HasPrefix(entry, "inherit=") {
+				for _, inhStr := range strings.Split(strings.Replace(entry, "inherit=", "", 1), ";") {
+					settings.Inheritances = append(settings.Inheritances, inhStr)
+				}
+			}
+		}
+	}
+	return settings
+}
+
+func dbmlTableToGormString(table core.Table) string {
 	str := ""
+	settings := parseTableSettings(table)
+	if settings.Hidden {
+		return ""
+	}
 	str += fmt.Sprintf("type %v struct {\n", table.Name)
-	if table.Note != "" {
-		str += "\t" + strings.Replace(table.Note, ";", "\n", -1) + "\n"
+	if len(settings.Inheritances) > 0 {
+		for _, inheritance := range settings.Inheritances {
+			str += fmt.Sprintf("    %v\n", inheritance)
+		}
 	}
 	for _, column := range table.Columns {
 		if column.Settings.Note != "hidden" {
-			columnType, isPresent := types[column.Type]
-			if !isPresent {
-				columnType = column.Type
+			columnType := types[column.Type]
+			columnParams := parseColumnParameters(column)
+
+			if columnType == "" {
+				if column.Settings.Ref.Type != core.None {
+					if column.Settings.Ref.Type == core.ManyToOne {
+						str += fmt.Sprintf("    %v int\n", column.Name+"ID")
+						columnType = column.Type
+					} else {
+						panic(fmt.Sprintf("Relation type %v is not yet supported", column.Settings.Ref.Type))
+					}
+				} else {
+					columnType = column.Type
+				}
 			}
-			settings := createGormSettings(column)
-			str += fmt.Sprintf("    %v %v%v\n", column.Name, columnType, settings)
+			str += fmt.Sprintf("    %v %v%v\n", column.Name, columnType, columnParams)
 		}
 	}
 	str += "}\n\n"
 	return str
 }
 
-func createGormSettings(column core.Column) string {
-	re := regexp.MustCompile(`^gorm:\"([a-zA-Z-_;:<> ]*)\"$`)
+func parseColumnParameters(column core.Column) string {
 	var settings []string
 
-	match := re.FindStringSubmatch(column.Settings.Note)
+	match := gormRe.FindStringSubmatch(column.Settings.Note)
 	if len(match) == 2 {
 		for _, entry := range strings.Split(match[1], ";") {
 			settings = append(settings, strings.ToLower(entry))
@@ -98,48 +148,7 @@ func createGormSettings(column core.Column) string {
 	return ""
 }
 
-var migrationTemplate = `import (
-	"fmt"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-)
-
-var db *gorm.DB
-
-func Connect(dsn string) *gorm.DB {
-	if db == nil {
-		newDb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-		if err != nil {
-			panic("failed to connect database")
-		}
-		db = newDb
-	}
-	return db
-}
-
-func Migrate(dsn string) {
-	db := Connect(dsn)
-`
-
-func dbmlToMigrationString(dbml *core.DBML) string {
-	migrationStr := getProjectHeader(dbml)
-	migrationStr += migrationTemplate
-	for _, table := range dbml.Tables {
-		migrationStr += fmt.Sprintf(`
-	if err := db.AutoMigrate(&%v{}); err != nil {
-		panic("failed to migrate %v")
-	}`, table.Name, table.Name)
-	}
-	migrationStr += `
-	fmt.Println("Migration succeeded")
-}`
-	return migrationStr
-}
-
 func CreateGormFiles(dbml *core.DBML, outputPath string) {
-	gormString := dbmlToGormString(dbml)
+	gormString := dbmlToGormString(dbml, outputPath)
 	common.WriteToFile(gormString, filepath.Join(outputPath, "model.gen.go"))
-
-	migrationString := dbmlToMigrationString(dbml)
-	common.WriteToFile(migrationString, filepath.Join(outputPath, "migration.gen.go"))
 }

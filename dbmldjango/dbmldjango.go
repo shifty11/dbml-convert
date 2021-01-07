@@ -98,7 +98,7 @@ func getDbmlColumnSettings(column core.Column) []string {
 		settings = append(settings, "unique=True")
 	}
 	key = "not null"
-	if !column.Settings.Null && !slice.Contains(settings, key) {
+	if column.Settings.Null && !slice.Contains(settings, key) {
 		settings = append(settings, "null=True")
 	}
 	key = "default"
@@ -141,6 +141,9 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 	str := ""
 	table := djangoTable.Table
 	settings := parseTableSettings(table)
+	if settings.Hidden {
+		return ""
+	}
 	inheritance := "models.Model"
 	if len(settings.Inheritances) > 0 {
 		inheritance = strings.Join(settings.Inheritances, ", ")
