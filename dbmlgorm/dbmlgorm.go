@@ -3,7 +3,7 @@ package dbmlgorm
 import (
 	"fmt"
 	"github.com/duythinht/dbml-go/core"
-	"github.com/shifty11/dbml-to-gorm/common"
+	"github.com/shifty11/dbml-convert/common"
 	"github.com/stretchr/stew/slice"
 	"io/ioutil"
 	"path/filepath"
@@ -137,7 +137,7 @@ func parseColumnParameters(column core.Column) string {
 	}
 	key = "default"
 	if column.Settings.Default != "" && !slice.Contains(settings, key) {
-		reDefault := regexp.MustCompile(`^gorm:\"[^\"]*?default:[^\"]*?\"$`)
+		reDefault := regexp.MustCompile(`^gorm:"[^"]*?default:[^"]*?"$`)
 		if len(reDefault.FindString(column.Settings.Note)) == 0 {
 			settings = append(settings, "default:"+column.Settings.Default)
 		}

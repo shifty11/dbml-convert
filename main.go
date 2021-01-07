@@ -6,8 +6,8 @@ import (
 	"github.com/duythinht/dbml-go/core"
 	"github.com/duythinht/dbml-go/parser"
 	"github.com/duythinht/dbml-go/scanner"
-	"github.com/shifty11/dbml-to-gorm/dbmldjango"
-	"github.com/shifty11/dbml-to-gorm/dbmlgorm"
+	"github.com/shifty11/dbml-convert/dbmldjango"
+	"github.com/shifty11/dbml-convert/dbmlgorm"
 	"os"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/duythinht/dbml-go/core"
 	"github.com/gobeam/stringy"
-	"github.com/shifty11/dbml-to-gorm/common"
+	"github.com/shifty11/dbml-convert/common"
 	"github.com/stretchr/stew/slice"
 	"io/ioutil"
 	"path/filepath"
