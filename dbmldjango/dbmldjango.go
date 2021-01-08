@@ -158,6 +158,9 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 				paramsString = strings.Join(columnParams, ", ")
 			}
 			if columnType == "" {
+				if strings.HasPrefix(column.Type, "[]") {
+					continue
+				}
 				if column.Settings.Ref.Type != core.None {
 					columnType = getRelationType(column, paramsString)
 					if columnType == "" && paramsString == "" {
@@ -172,7 +175,7 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 		}
 	}
 	tableName := strings.ToLower(stringy.New(table.Name).SnakeCase("?", "").Get())
-	str += fmt.Sprintf("\n    class Meta:\n        db_table = '%vs'\n\n", tableName)
+	str += fmt.Sprintf("\n    class Meta:\n        db_table = '%vs'\n\n\n", tableName)
 	return str
 }
 
@@ -212,7 +215,7 @@ func addEnums(currentEnums []core.Enum, enums []core.Enum, table core.Table) []c
 }
 
 func dbmlSplitByModelPath(dbml *core.DBML) DBMLDjango {
-	files := map[string]PythonFile{}
+	files := map[string]*PythonFile{}
 	for _, table := range dbml.Tables {
 		settings := parseTableSettings(table)
 		if !settings.Hidden {
@@ -221,7 +224,7 @@ func dbmlSplitByModelPath(dbml *core.DBML) DBMLDjango {
 				file.Tables = append(file.Tables, djangoTable)
 				file.Enums = addEnums(file.Enums, dbml.Enums, table)
 			} else {
-				files[settings.ModelPath] = PythonFile{
+				files[settings.ModelPath] = &PythonFile{
 					FilePath: settings.ModelPath,
 					Tables:   []DjangoTable{djangoTable},
 					Enums:    addEnums([]core.Enum{}, dbml.Enums, table),
@@ -231,7 +234,7 @@ func dbmlSplitByModelPath(dbml *core.DBML) DBMLDjango {
 	}
 	dbmlDjango := DBMLDjango{}
 	for _, file := range files {
-		dbmlDjango.Files = append(dbmlDjango.Files, file)
+		dbmlDjango.Files = append(dbmlDjango.Files, *file)
 	}
 	return dbmlDjango
 }
