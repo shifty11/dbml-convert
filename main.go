@@ -7,20 +7,22 @@ import (
 	"github.com/duythinht/dbml-go/parser"
 	"github.com/duythinht/dbml-go/scanner"
 	"github.com/shifty11/dbml-convert/dbmldjango"
+	"github.com/shifty11/dbml-convert/dbmlent"
 	"github.com/shifty11/dbml-convert/dbmlgorm"
 	"os"
 )
 
-func parseArgs() (string, string, bool) {
+func parseArgs() (string, string, bool, bool, bool) {
 	flag.Usage = func() { // Showing useful information when the user enters the --help option
 		flag.PrintDefaults()
-		fmt.Printf("<path-to-dbml-file> <path-to-output>\n")
+		fmt.Printf("-django|-gorm|-ent <path-to-dbml-file> <path-to-output>\n")
 	}
 	toDjango := flag.Bool("django", false, "Creates Django models")
 	toGorm := flag.Bool("gorm", false, "Creates Gorm models")
+	toEnt := flag.Bool("ent", false, "Creates Ent models")
 	flag.Parse()
 
-	if len(flag.Args()) < 2 || (!*toDjango && !*toGorm) || (*toDjango && *toGorm) {
+	if len(flag.Args()) < 2 || (!*toDjango && !*toGorm && !*toEnt) || (*toDjango && *toGorm && *toEnt) {
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -32,7 +34,7 @@ func parseArgs() (string, string, bool) {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	return dbmlPath, outputPath, *toDjango
+	return dbmlPath, outputPath, *toDjango, *toGorm, *toEnt
 }
 
 func parseDbml(dbmlPath string) *core.DBML {
@@ -51,15 +53,18 @@ func parseDbml(dbmlPath string) *core.DBML {
 }
 
 func main() {
-	dbmlPath, outputPath, toDjango := parseArgs()
+	dbmlPath, outputPath, toDjango, toGorm, toEnt := parseArgs()
 
 	dbml := parseDbml(dbmlPath)
 
 	if toDjango {
 		dbmldjango.CreateDjangoFiles(dbml, outputPath)
 		fmt.Printf("Created Django models\nInput: %v\nOutput:%v\n", dbmlPath, outputPath)
-	} else {
+	} else if toGorm {
 		dbmlgorm.CreateGormFiles(dbml, outputPath)
 		fmt.Printf("Created Gorm models\nInput: %v\nOutput:%v\n", dbmlPath, outputPath)
+	} else if toEnt {
+		dbmlent.CreateEntFiles(dbml, outputPath)
+		fmt.Printf("Created Ent models\nInput: %v\nOutput:%v\n", dbmlPath, outputPath)
 	}
 }
