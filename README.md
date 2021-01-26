@@ -6,6 +6,11 @@ Creates gorm models from dbdiagram.io (dbml).
 go get -v github.com/shifty11/dbml-convert/...
 ```
 
+## Update
+```bash
+go get -u github.com/shifty11/dbml-convert/...
+```
+
 ## Usage
 ```bash
 dbml-convert <path-to-dbml-file> <path-to-output-file>
