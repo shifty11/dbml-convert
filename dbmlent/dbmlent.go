@@ -88,7 +88,7 @@ func getFields(table core.Table, dbml *core.DBML) string {
 	}
 	fields := "[]ent.Field{\n"
 	for _, column := range table.Columns {
-		settings := common.GetColumnSettings(column, common.EntSettings)
+		settings := common.GetNoteSettings(column.Settings.Note, common.EntSettings)
 		if !slice.Contains(settings, common.SHidden) &&
 			!slice.Contains(settings, common.SBackref) &&
 			column.Settings.Ref.Type == core.None {
@@ -159,7 +159,7 @@ func getEdges(table core.Table) string {
 				fromName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
 				edges = append(edges, fmt.Sprintf(edgeTemplateFrom, fromName, column.Type, ref))
 			} else {
-				params := common.GetColumnSettings(column, common.EntSettings)
+				params := common.GetNoteSettings(column.Settings.Note, common.EntSettings)
 				if slice.Contains(params, common.SBackref) {
 					toName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
 					edgeType := column.Type

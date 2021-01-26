@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/duythinht/dbml-go/core"
 	"os"
 	"regexp"
 	"strings"
@@ -53,10 +52,10 @@ const (
 	EntSettings    SettingsType = "EntSettings"
 )
 
-func GetColumnSettings(column core.Column, settingsType SettingsType) []string {
+func GetNoteSettings(note string, settingsType SettingsType) []string {
 	var settings []string
 
-	match := commonRe.FindStringSubmatch(column.Settings.Note)
+	match := commonRe.FindStringSubmatch(note)
 	if len(match) == 2 {
 		for _, entry := range strings.Split(match[1], " ") {
 			settings = append(settings, entry)
@@ -68,7 +67,7 @@ func GetColumnSettings(column core.Column, settingsType SettingsType) []string {
 	} else {
 		reg = entRe
 	}
-	match = reg.FindStringSubmatch(column.Settings.Note)
+	match = reg.FindStringSubmatch(note)
 	if len(match) == 2 {
 		for _, entry := range strings.Split(match[1], " ") {
 			settings = append(settings, entry)

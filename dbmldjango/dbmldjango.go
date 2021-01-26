@@ -8,11 +8,8 @@ import (
 	"github.com/stretchr/stew/slice"
 	"io/ioutil"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
-
-var djangoRe = regexp.MustCompile(`django:"([a-zA-Z0-9-_;:<>= ./']*)"`)
 
 func getTemplate(path string) string {
 	template, err := ioutil.ReadFile(path)
@@ -57,19 +54,18 @@ type TableSettings struct {
 func parseTableSettings(table core.Table) TableSettings {
 	settings := TableSettings{Hidden: false}
 
-	match := djangoRe.FindStringSubmatch(table.Note)
-	if len(match) == 2 {
-		for _, entry := range strings.Split(match[1], ";") {
-			if entry == "hidden" {
-				return TableSettings{Hidden: true}
-			} else if strings.HasPrefix(entry, "inherit=") {
-				for _, inhStr := range strings.Split(strings.Replace(entry, "inherit=", "", 1), ";") {
-					str := stringy.New(strings.Replace(inhStr, ".", "", -1)).CamelCase("?", "")
-					settings.Inheritances = append(settings.Inheritances, str)
-				}
-			} else if strings.HasPrefix(entry, "model_path=") {
-				settings.ModelPath = strings.Replace(entry, "model_path=", "", 1)
+	settingsStr := common.GetNoteSettings(table.Note, common.DJangoSettings)
+
+	for _, entry := range settingsStr {
+		if entry == common.SHidden {
+			return TableSettings{Hidden: true}
+		} else if strings.HasPrefix(entry, "inherit=") {
+			for _, inhStr := range strings.Split(strings.Replace(entry, "inherit=", "", 1), ";") {
+				str := stringy.New(strings.Replace(inhStr, ".", "", -1)).CamelCase("?", "")
+				settings.Inheritances = append(settings.Inheritances, str)
 			}
+		} else if strings.HasPrefix(entry, "model_path=") {
+			settings.ModelPath = strings.Replace(entry, "model_path=", "", 1)
 		}
 	}
 	if settings.ModelPath == "" {
@@ -81,9 +77,9 @@ func parseTableSettings(table core.Table) TableSettings {
 func parseColumnParameters(column core.Column) []string {
 	params := getDbmlColumnSettings(column)
 
-	match := djangoRe.FindStringSubmatch(column.Settings.Note)
-	if len(match) == 2 {
-		for _, entry := range strings.Split(match[1], ";") {
+	settingsStr := common.GetNoteSettings(column.Settings.Note, common.DJangoSettings)
+	for _, settings := range settingsStr {
+		for _, entry := range strings.Split(settings, ";") {
 			params = append(params, entry)
 		}
 	}
@@ -150,7 +146,8 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 	}
 	str += fmt.Sprintf("class %v(%v):\n", table.Name, inheritance)
 	for _, column := range table.Columns {
-		if column.Settings.Note != "hidden" {
+		columnSettings := common.GetNoteSettings(column.Settings.Note, common.DJangoSettings)
+		if !slice.Contains(columnSettings, common.SHidden) {
 			columnType := types[column.Type]
 			columnParams := parseColumnParameters(column)
 			paramsString := ""
