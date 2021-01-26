@@ -20,6 +20,7 @@ const SHidden = "hidden"
 const SBackref = "backref"
 
 // Prefixes in dbml notes
+const PrefixCommon = "all:"
 const PrefixDjango = "django:"
 const PrefixEnt = "ent:"
 
@@ -40,50 +41,38 @@ func WriteToFile(data string, outputPath string) {
 //const matchChars = "[a-zA-Z0-9-_;:<>= ./'\"%&!?]"
 const matchChars = "[a-zA-Z0-9-_;:<>= ./'\"%&!?]"
 
-var commonRe = regexp.MustCompile(`^([a-zA-Z0-9-_;:<>= ./'"%&!?]*)$`)
+var commonRe = regexp.MustCompile(PrefixCommon + `\x60([^\x60]*)\x60`)
+var djangoRe = regexp.MustCompile(PrefixDjango + `\x60([^\x60]*)\x60`)
+var entRe = regexp.MustCompile(PrefixEnt + `\x60([^\x60]*)\x60`)
 
-//var djangoRe = regexp.MustCompile(`^` + PrefixDjango + `(` + matchChars + `*)$`)
-//var entRe = regexp.MustCompile(`^` + PrefixEnt + `(` + matchChars + `*)$`)
+type SettingsType string
 
-func GetColumnSettings(column core.Column) []string {
+// State values.
+const (
+	DJangoSettings SettingsType = "DJangoSettings"
+	EntSettings    SettingsType = "EntSettings"
+)
+
+func GetColumnSettings(column core.Column, settingsType SettingsType) []string {
 	var settings []string
-	//if strings.HasPrefix(column.Settings.Note, PrefixDjango) || strings.HasPrefix(column.Settings.Note, PrefixEnt) {
-	//	return settings
-	//}
 
 	match := commonRe.FindStringSubmatch(column.Settings.Note)
 	if len(match) == 2 {
 		for _, entry := range strings.Split(match[1], " ") {
-			settings = append(settings, strings.ToLower(entry))
+			settings = append(settings, entry)
+		}
+	}
+	var reg *regexp.Regexp
+	if settingsType == DJangoSettings {
+		reg = djangoRe
+	} else {
+		reg = entRe
+	}
+	match = reg.FindStringSubmatch(column.Settings.Note)
+	if len(match) == 2 {
+		for _, entry := range strings.Split(match[1], " ") {
+			settings = append(settings, entry)
 		}
 	}
 	return settings
 }
-
-//func GetSpecialDjangoParameters(column core.Column) []string {
-//	var parameters []string
-//	if !strings.HasPrefix(column.Settings.Note, PrefixDjango) {
-//		return parameters
-//	}
-//	match := commonRe.FindStringSubmatch(column.Settings.Note[len(PrefixDjango):])
-//	if len(match) == 2 {
-//		for _, entry := range strings.Split(match[1], " ") {
-//			parameters = append(parameters, strings.ToLower(entry))
-//		}
-//	}
-//	return parameters
-//}
-//
-//func GetSpecialEntParameters(column core.Column) []string {
-//	var parameters []string
-//	if !strings.HasPrefix(column.Settings.Note, PrefixEnt) {
-//		return parameters
-//	}
-//	match := commonRe.FindStringSubmatch(column.Settings.Note[len(PrefixEnt):])
-//	if len(match) == 2 {
-//		for _, entry := range strings.Split(match[1], " ") {
-//			parameters = append(parameters, strings.ToLower(entry))
-//		}
-//	}
-//	return parameters
-//}

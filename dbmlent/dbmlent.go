@@ -32,7 +32,7 @@ func parseTableSettings(table core.Table) TableSettings {
 	return settings
 }
 
-func getImport(table core.Table) string {
+func getImport(table core.Table, fieldsString string) string {
 	var imports = []string{"github.com/facebook/ent", "github.com/facebook/ent/schema/field"}
 	hasEdges := false
 	for _, column := range table.Columns {
@@ -48,6 +48,9 @@ func getImport(table core.Table) string {
 	}
 	if hasDecimal(table) {
 		imports = append(imports, "github.com/shopspring/decimal")
+	}
+	if strings.Contains(fieldsString, "time.") {
+		imports = append(imports, "time")
 	}
 	if len(imports) == 1 {
 		return fmt.Sprintf("import %v", imports[0])
@@ -85,7 +88,7 @@ func getFields(table core.Table, dbml *core.DBML) string {
 	}
 	fields := "[]ent.Field{\n"
 	for _, column := range table.Columns {
-		settings := common.GetColumnSettings(column)
+		settings := common.GetColumnSettings(column, common.EntSettings)
 		if !slice.Contains(settings, common.SHidden) &&
 			!slice.Contains(settings, common.SBackref) &&
 			column.Settings.Ref.Type == core.None {
@@ -94,12 +97,24 @@ func getFields(table core.Table, dbml *core.DBML) string {
 				fields += getEnumField(column, dbml)
 			} else {
 				columnName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
-				fields += fmt.Sprintf("\t\t%v(\"%v\")%v,\n", columnType, columnName, getFieldExtras(column))
+				fields += fmt.Sprintf("\t\t%v(\"%v\")%v%v,\n",
+					columnType, columnName, getFieldExtras(column), formatSettings(settings))
 			}
 		}
 	}
 	fields += "\t}"
 	return fields
+}
+
+func formatSettings(settings []string) string {
+	if len(settings) > 0 {
+		str := "."
+		for _, s := range settings {
+			str += "\n\t\t\t" + strings.ReplaceAll(s, "\\n", "\n\t\t\t")
+		}
+		return str
+	}
+	return ""
 }
 
 func getEnumField(column core.Column, dbml *core.DBML) string {
@@ -144,7 +159,7 @@ func getEdges(table core.Table) string {
 				fromName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
 				edges = append(edges, fmt.Sprintf(edgeTemplateFrom, fromName, column.Type, ref))
 			} else {
-				params := common.GetColumnSettings(column)
+				params := common.GetColumnSettings(column, common.EntSettings)
 				if slice.Contains(params, common.SBackref) {
 					toName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
 					edgeType := column.Type
@@ -173,11 +188,12 @@ func dbmlTableToEntString(table core.Table, dbml *core.DBML) string {
 	if settings.Hidden {
 		return ""
 	}
-	str := fmt.Sprintf(entTemplate, getImport(table),
+	fields := getFields(table, dbml)
+	str := fmt.Sprintf(entTemplate, getImport(table, fields),
 		table.Name, table.Name, table.Name,
 		getSpecialDeclarations(table),
 		table.Name, table.Name,
-		getFields(table, dbml),
+		fields,
 		table.Name, table.Name,
 		getEdges(table),
 	)
