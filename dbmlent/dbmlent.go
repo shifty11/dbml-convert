@@ -120,7 +120,7 @@ func formatSettings(settings []string) string {
 func getEnumField(column core.Column, dbml *core.DBML) string {
 	for _, enum := range dbml.Enums {
 		if strings.ToLower(enum.Name) == strings.ToLower(column.Type) {
-			columnName := strings.ToLower(enum.Name)
+			columnName := strings.ToLower(stringy.New(enum.Name).SnakeCase("?", "").Get())
 			var enumValues []string
 			for _, value := range enum.Values {
 				enumValues = append(enumValues, `"`+value.Name+`"`)
