@@ -8,4 +8,4 @@ require (
 	github.com/stretchr/stew v0.0.0-20130812190256-80ef0842b48b
 )
 
-replace github.com/duythinht/dbml-go => github.com/shifty11/dbml-go v0.1.2
+replace github.com/duythinht/dbml-go => github.com/shifty11/dbml-go v0.1.3
