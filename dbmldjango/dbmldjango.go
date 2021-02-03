@@ -79,7 +79,7 @@ func parseTableSettings(table core.Table) TableSettings {
 }
 
 func parseColumnParameters(column core.Column) []string {
-	params := getDbmlColumnSettings(column)
+	var params []string
 
 	settingsStr := common.GetNoteSettings(column.Settings.Note, common.DJangoSettings)
 	for _, settings := range settingsStr {
@@ -87,6 +87,7 @@ func parseColumnParameters(column core.Column) []string {
 			params = append(params, entry)
 		}
 	}
+	params = append(params, getDbmlColumnSettings(column)...)
 	return params
 }
 
@@ -187,6 +188,7 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 		for _, entry := range settings.Meta {
 			str += fmt.Sprintf("        %v\n", strings.Replace(entry, "=", " = ", 1))
 		}
+		str += "\n\n"
 	} else {
 		str += fmt.Sprintf("\n    class Meta:\n        db_table = '%vs'\n\n\n", tableName)
 	}
