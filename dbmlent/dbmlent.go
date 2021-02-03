@@ -133,7 +133,7 @@ func getEnumField(column core.Column, dbml *core.DBML) string {
 			for _, value := range enum.Values {
 				enumValues = append(enumValues, `"`+value.Name+`"`)
 			}
-			valuesStr := fmt.Sprintf("Values(%v)", strings.Join(enumValues, ","))
+			valuesStr := fmt.Sprintf("Values(%v)", strings.Join(enumValues, ", "))
 			return fmt.Sprintf("\t\tfield.Enum(\"%v\").\n\t\t\t%v%v,\n", columnName, valuesStr, getFieldExtras(column))
 		}
 	}
