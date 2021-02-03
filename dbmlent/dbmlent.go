@@ -161,7 +161,7 @@ func getEdges(table core.Table) string {
 	var edges []string
 	for _, column := range table.Columns {
 		if column.Settings.Note != common.SHidden {
-			if column.Settings.Ref.Type == core.ManyToOne {
+			if column.Settings.Ref.Type == core.ManyToOne || column.Settings.Ref.Type == core.OneToOne {
 				split := strings.Split(column.Settings.Ref.To, ".")
 				ref := strings.ToLower(stringy.New(split[len(split)-1]).SnakeCase("?", "").Get())
 				fromName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
@@ -171,11 +171,14 @@ func getEdges(table core.Table) string {
 				if slice.Contains(params, common.SBackref) {
 					toName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
 					edgeType := column.Type
+					options := ""
 					if strings.HasPrefix(edgeType, "[]") {
 						edgeType = edgeType[2:]
+					} else {
+						options = ".\n\t\t\tUnique()"
 					}
 					ref := strings.ToLower(stringy.New(table.Name).SnakeCase("?", "").Get()) + "_id"
-					edges = append(edges, fmt.Sprintf(edgeTemplateTo, toName, edgeType, ref))
+					edges = append(edges, fmt.Sprintf(edgeTemplateTo, toName, edgeType, ref, options))
 				}
 			}
 		}

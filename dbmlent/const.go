@@ -24,7 +24,7 @@ func (%v) Edges() []ent.Edge {
 
 const edgeTemplateTo = `
 		edge.To("%v", %v.Type).
-			StorageKey(edge.Column("%v")),
+			StorageKey(edge.Column("%v"))%v,
 `
 
 const edgeTemplateFrom = `
