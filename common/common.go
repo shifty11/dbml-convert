@@ -14,6 +14,10 @@ const TInt = "int"
 const TEmail = "email"
 const TDatetime = "datetime"
 
+// special options in dbml
+const OCreatedAt = "CreatedAt"
+const OUpdatedAt = "UpdatedAt"
+
 // settings in dbml notes
 const SHidden = "hidden"
 const SBackref = "backref"

@@ -49,6 +49,7 @@ type TableSettings struct {
 	Inheritances []string
 	ModelPath    string
 	Hidden       bool
+	Meta         []string
 }
 
 func parseTableSettings(table core.Table) TableSettings {
@@ -66,6 +67,9 @@ func parseTableSettings(table core.Table) TableSettings {
 			}
 		} else if strings.HasPrefix(entry, "model_path=") {
 			settings.ModelPath = strings.Replace(entry, "model_path=", "", 1)
+		} else if strings.HasPrefix(entry, "meta=") {
+			meta := strings.Replace(entry[:len(entry)-1], "meta=[", "", 1)
+			settings.Meta = strings.Split(meta, " ")
 		}
 	}
 	if settings.ModelPath == "" {
@@ -152,7 +156,13 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 			columnParams := parseColumnParameters(column)
 			paramsString := ""
 			if len(columnParams) > 0 {
-				paramsString = strings.Join(columnParams, ", ")
+				if columnParams[0] == common.OCreatedAt {
+					paramsString = specialOptions[common.OCreatedAt]
+				} else if columnParams[0] == common.OUpdatedAt {
+					paramsString = specialOptions[common.OUpdatedAt]
+				} else {
+					paramsString = strings.Join(columnParams, ", ")
+				}
 			}
 			if columnType == "" {
 				if strings.HasPrefix(column.Type, "[]") {
@@ -172,7 +182,14 @@ func dbmlTableToDjangoString(djangoTable DjangoTable, enums []core.Enum) string 
 		}
 	}
 	tableName := strings.ToLower(stringy.New(table.Name).SnakeCase("?", "").Get())
-	str += fmt.Sprintf("\n    class Meta:\n        db_table = '%vs'\n\n\n", tableName)
+	if len(settings.Meta) > 0 {
+		str += "\n    class Meta:\n"
+		for _, entry := range settings.Meta {
+			str += fmt.Sprintf("        %v\n", strings.Replace(entry, "=", " = ", 1))
+		}
+	} else {
+		str += fmt.Sprintf("\n    class Meta:\n        db_table = '%vs'\n\n\n", tableName)
+	}
 	return str
 }
 

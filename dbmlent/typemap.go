@@ -10,3 +10,8 @@ var typeMap = map[string]string{
 	common.TDatetime: "field.Time",
 	common.TDecimal:  "field.String",
 }
+
+var specialOptions = map[string]string{
+	common.OCreatedAt: "Default(time.Now)",
+	common.OUpdatedAt: "Default(time.Now).\\nUpdateDefault(time.Now)",
+}

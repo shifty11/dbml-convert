@@ -32,7 +32,7 @@ func parseTableSettings(table core.Table) TableSettings {
 	return settings
 }
 
-func getImport(table core.Table, fieldsString string) string {
+func getImport(table core.Table, fieldsString string, declarations string) string {
 	var imports = []string{"github.com/facebook/ent", "github.com/facebook/ent/schema/field"}
 	hasEdges := false
 	for _, column := range table.Columns {
@@ -46,7 +46,7 @@ func getImport(table core.Table, fieldsString string) string {
 	if hasEdges {
 		imports = append(imports, "github.com/facebook/ent/schema/edge")
 	}
-	if hasDecimal(table) {
+	if strings.Contains(declarations, "decimal.Decimal") {
 		imports = append(imports, "github.com/shopspring/decimal")
 	}
 	if strings.Contains(fieldsString, "time.") {
@@ -75,8 +75,11 @@ func hasDecimal(table core.Table) bool {
 	return false
 }
 
+var isDecimalDeclared = false
+
 func getSpecialDeclarations(table core.Table) string {
-	if hasDecimal(table) {
+	if !isDecimalDeclared && hasDecimal(table) {
+		isDecimalDeclared = true // just needed once in all files
 		return "var dec decimal.Decimal"
 	}
 	return ""
@@ -110,6 +113,11 @@ func formatSettings(settings []string) string {
 	if len(settings) > 0 {
 		str := "."
 		for _, s := range settings {
+			if s == common.OCreatedAt {
+				s = specialOptions[common.OCreatedAt]
+			} else if s == common.OUpdatedAt {
+				s = specialOptions[common.OUpdatedAt]
+			}
 			str += "\n\t\t\t" + strings.ReplaceAll(s, "\\n", "\n\t\t\t")
 		}
 		return str
@@ -189,9 +197,10 @@ func dbmlTableToEntString(table core.Table, dbml *core.DBML) string {
 		return ""
 	}
 	fields := getFields(table, dbml)
-	str := fmt.Sprintf(entTemplate, getImport(table, fields),
+	specialDeclarations := getSpecialDeclarations(table)
+	str := fmt.Sprintf(entTemplate, getImport(table, fields, specialDeclarations),
 		table.Name, table.Name, table.Name,
-		getSpecialDeclarations(table),
+		specialDeclarations,
 		table.Name, table.Name,
 		fields,
 		table.Name, table.Name,
