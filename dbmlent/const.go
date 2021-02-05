@@ -30,5 +30,5 @@ const edgeTemplateTo = `
 const edgeTemplateFrom = `
 		edge.From("%v", %v.Type).
 			Ref("%v").
-			Unique(),
+			Unique()%v,
 `

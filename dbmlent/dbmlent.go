@@ -165,7 +165,11 @@ func getEdges(table core.Table) string {
 				split := strings.Split(column.Settings.Ref.To, ".")
 				ref := strings.ToLower(stringy.New(split[len(split)-1]).SnakeCase("?", "").Get())
 				fromName := strings.ToLower(stringy.New(column.Name).SnakeCase("?", "").Get())
-				edges = append(edges, fmt.Sprintf(edgeTemplateFrom, fromName, column.Type, ref))
+				options := ""
+				if !column.Settings.Null {
+					options = ".\n\t\t\tRequired()"
+				}
+				edges = append(edges, fmt.Sprintf(edgeTemplateFrom, fromName, column.Type, ref, options))
 			} else {
 				params := common.GetNoteSettings(column.Settings.Note, common.EntSettings)
 				if slice.Contains(params, common.SBackref) {
