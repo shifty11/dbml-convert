@@ -104,9 +104,16 @@ func getDbmlColumnSettings(column core.Column) []string {
 	}
 	key = "default"
 	if column.Settings.Default != "" && !slice.Contains(settings, key) {
-		settings = append(settings, fmt.Sprintf("default='%v'", column.Settings.Default))
+		settings = append(settings, fmt.Sprintf("default=%v", parseDefault(column)))
 	}
 	return settings
+}
+
+func parseDefault(column core.Column) string {
+	if column.Type == common.TBool || column.Type == common.TBoolean {
+		return strings.Title(column.Settings.Default)
+	}
+	return fmt.Sprintf("'%v'", column.Settings.Default)
 }
 
 func getRelationType(column core.Column, paramsString string) string {

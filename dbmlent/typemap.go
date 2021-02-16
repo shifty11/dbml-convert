@@ -9,6 +9,8 @@ var typeMap = map[string]string{
 	common.TEmail:    "field.String",
 	common.TDatetime: "field.Time",
 	common.TDecimal:  "field.String",
+	common.TBool:     "field.Bool",
+	common.TBoolean:  "field.Bool",
 }
 
 var specialOptions = map[string]string{

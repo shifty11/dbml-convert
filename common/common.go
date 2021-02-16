@@ -13,6 +13,8 @@ const TUint = "uint"
 const TInt = "int"
 const TEmail = "email"
 const TDatetime = "datetime"
+const TBool = "bool"
+const TBoolean = "boolean"
 
 // special options in dbml
 const OCreatedAt = "CreatedAt"
